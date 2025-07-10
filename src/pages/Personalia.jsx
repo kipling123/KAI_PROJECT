@@ -1,231 +1,386 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Box, Typography, Avatar, Card, CardContent, Tabs, Tab, TextField,
-  Button, Divider, List, ListItem, ListItemIcon, ListItemText, IconButton,
-  Paper, Badge, Grid, Tooltip, useTheme
+  Box, Typography, Button, TextField, Paper,
+  TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Chip, FormControl, InputLabel, Select, MenuItem,
+  Grid, IconButton, Tooltip, Stack, TablePagination
 } from '@mui/material';
 import {
-  Person, Email, Phone, LocationOn, Edit, Save, Lock, Notifications,
-  Security, Work, School, Event
+  Search, FilterAlt, Edit, Visibility, Print, FileDownload,
+  Sort, ArrowUpward, ArrowDownward, Clear, AccountCircle
 } from '@mui/icons-material';
 
-const Profile = () => {
-  const theme = useTheme();
-  const [tabValue, setTabValue] = useState(0);
-  const [editMode, setEditMode] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: 'Asep Hidayat S.Kom M.Kom',
-    position: 'Production Manager',
-    email: 'john.doe@kai.co.id',
-    phone: '+62 812-3456-7890',
-    address: 'Jl. Kereta Api No. 1, Jakarta',
-    bio: 'Professional with 10+ years experience in railway production management',
-    education: [
-      { id: 1, degree: 'Bachelor of Engineering', university: 'Institut Teknologi Bandung', year: '2005-2009' },
-      { id: 2, degree: 'Master of Business Administration', university: 'Universitas Indonesia', year: '2011-2013' }
-    ],
-    experience: [
-      { id: 1, position: 'Production Supervisor', company: 'PT KAI', period: '2010-2015' },
-      { id: 2, position: 'Production Manager', company: 'PT KAI Balai Yasa', period: '2015-Present' }
-    ]
+const Personalia = () => {
+  // inisialisaisi data data pegawai
+  const initialData = [
+    { id: 1, nip: '198003012005011001', nama: 'Budi Santoso', jabatan: 'Manager', divisi: 'Manajemen', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2005-01-10', urgentNumber: '081234567890', phoneNumber: '087711223344' },
+    { id: 2, nip: '198104022006022002', nama: 'Ani Wijaya', jabatan: 'Asisten Manager', divisi: 'Pelayanan', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2006-02-20', urgentNumber: '081345678901', phoneNumber: '087722334455' },
+    { id: 3, nip: '198205033007033003', nama: 'Citra Dewi', jabatan: 'Staff Produksi', divisi: 'Operasional', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2007-03-30', urgentNumber: '081456789012', phoneNumber: '087733445566' },
+    { id: 4, nip: '198306044008044004', nama: 'Dodi Pratama', jabatan: 'IT', divisi: 'Telekomunikasi', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2008-04-15', urgentNumber: '081567890123', phoneNumber: '087744556677' },
+    { id: 5, nip: '198407055009055005', nama: 'Eka Putri', jabatan: 'Ticketing Officer', divisi: 'Pelayanan', lokasi: 'Balai Yasa', status: 'Cuti', joinDate: '2009-05-25', urgentNumber: '081678901234', phoneNumber: '087755667788' },
+    { id: 6, nip: '198508066010066006', nama: 'Fajar Setiawan', jabatan: 'Teknisi', divisi: 'Pemeliharaan', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2010-06-05', urgentNumber: '081789012345', phoneNumber: '087766778899' },
+    { id: 7, nip: '198609077011077007', nama: 'Gita Maharani', jabatan: 'HRD Staff', divisi: 'SDM', lokasi: 'Kantor Pusat Jakarta', status: 'Aktif', joinDate: '2011-07-12', urgentNumber: '081890123456', phoneNumber: '087777889900' },
+  ];
+
+  // State management
+  const [data, setData] = useState(initialData);
+  const [sortConfig, setSortConfig] = useState({ key: 'nama', direction: 'asc' }); 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0); 
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [filters, setFilters] = useState({
+    divisi: '',
+    status: '',
   });
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const handleChangeTab = (_, newValue) => setTabValue(newValue);
-  const handleEditProfile = () => setEditMode(!editMode);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData({ ...profileData, [name]: value });
+  const uniqueDivisi = useMemo(() => [...new Set(initialData.map(item => item.divisi))], [initialData]);
+  const uniqueStatus = useMemo(() => [...new Set(initialData.map(item => item.status))], [initialData]);
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
   };
 
-  const renderInput = (label, name, icon, value) => (
-    <TextField
-      fullWidth
-      label={label}
-      name={name}
-      value={value}
-      onChange={handleInputChange}
-      disabled={!editMode}
-      sx={{ mb: 2 }}
-      InputProps={{
-        startAdornment: (
-          <Box sx={{ display: 'flex', alignItems: 'center', pr: 1 }}>
-            {icon}
-          </Box>
-        ),
-      }}
-    />
-  );
+  // Sort data
+  const sortedData = useMemo(() => {
+    const sortableData = [...data];
+    if (sortConfig.key) {
+      sortableData.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableData;
+  }, [data, sortConfig]);
+
+  // Filter data
+  const filteredData = useMemo(() => {
+    return sortedData.filter((item) => {
+      const matchesSearch = Object.values(item).some(
+        (val) => val && val.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      const matchesFilters = 
+        (filters.divisi === '' || item.divisi === filters.divisi) &&
+        (filters.status === '' || item.status === filters.status);
+      
+      return matchesSearch && matchesFilters;
+    });
+  }, [sortedData, searchTerm, filters]);
+
+  // Pagination
+  const currentItems = useMemo(() => {
+    return filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [filteredData, page, rowsPerPage]);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Sort arrow component
+  const SortArrow = ({ sortKey }) => {
+    if (sortConfig.key !== sortKey) return <Sort sx={{ fontSize: 16, verticalAlign: 'middle', ml: 0.5, color: 'text.secondary' }} />;
+    return sortConfig.direction === 'asc' ? <ArrowUpward sx={{ fontSize: 16, verticalAlign: 'middle', ml: 0.5 }} /> : <ArrowDownward sx={{ fontSize: 16, verticalAlign: 'middle', ml: 0.5 }} />;
+  };
+
+  // Status Chip component
+  const StatusChip = ({ status }) => {
+    let color = 'default';
+    if (status === 'Aktif') color = 'success';
+    if (status === 'Cuti') color = 'warning';
+    if (status === 'Non-Aktif') color = 'error';
+    
+    return <Chip label={status} color={color} size="small" />;
+  };
+
+  // Handle row click for modal
+  const handleRowClick = (employee) => {
+    setSelectedEmployee(employee);
+    setShowModal(true);
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      divisi: '',
+      status: '',
+    });
+    setSearchTerm('');
+    setPage(0);
+  };
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        👤 My Profile
-      </Typography>
-
-      <Card sx={{ mb: 4, borderRadius: 3, boxShadow: 4 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Badge
-                overlap="circular"
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent={
-                  <Tooltip title="Edit Photo">
-                    <IconButton size="small" sx={{ bgcolor: 'primary.main', color: 'white' }}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                }
-              >
-                <Avatar sx={{ width: 100, height: 100, fontSize: '2rem', bgcolor: 'primary.main' }}>
-                  {profileData.name.split(' ').map(n => n[0]).join('')}
-                </Avatar>
-              </Badge>
-              <Box sx={{ ml: 3 }}>
-                <Typography variant="h5" fontWeight="bold">
-                  {profileData.name}
-                </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                  {profileData.position}
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              onClick={handleEditProfile}
-              variant="contained"
-              startIcon={editMode ? <Save /> : <Edit />}
-              sx={{
-                textTransform: 'none',
-                borderRadius: 2,
-                fontWeight: 600,
-                bgcolor: editMode ? 'success.main' : 'primary.main',
-                '&:hover': {
-                  bgcolor: editMode ? 'success.dark' : 'primary.dark',
-                },
-              }}
-            >
-              {editMode ? 'Save' : 'Edit'}
+      <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden', mb: 4 }}>
+        <Box
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="h5" component="h2" fontWeight="bold">
+            Data Personalia PT Kereta Api Indonesia
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button variant="contained" startIcon={<Print />} sx={{ bgcolor: 'primary.light' }}>
+              Cetak
             </Button>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Tabs value={tabValue} onChange={handleChangeTab} textColor="primary" indicatorColor="primary">
-            <Tab icon={<Person />} label="Personal Info" />
-            <Tab icon={<School />} label="Education" />
-            <Tab icon={<Work />} label="Experience" />
-            <Tab icon={<Security />} label="Security" />
-          </Tabs>
-
-          {tabValue === 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  {renderInput("Full Name", "name", <Person fontSize="small" />, profileData.name)}
-                  {renderInput("Email", "email", <Email fontSize="small" />, profileData.email)}
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  {renderInput("Phone", "phone", <Phone fontSize="small" />, profileData.phone)}
-                  {renderInput("Address", "address", <LocationOn fontSize="small" />, profileData.address)}
-                </Grid>
-              </Grid>
+            <Button variant="contained" startIcon={<FileDownload />} sx={{ bgcolor: 'primary.light' }}>
+              Export Excel
+            </Button>
+          </Stack>
+        </Box>
+        
+        <Box sx={{ p: 3 }}>
+          {/* Search and Filter Bar */}
+          <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Bio"
-                name="bio"
-                value={profileData.bio}
-                onChange={handleInputChange}
-                disabled={!editMode}
-                multiline
-                rows={3}
-                sx={{ mt: 2 }}
-              />
-            </Box>
-          )}
-
-          {tabValue === 1 && (
-            <Box sx={{ mt: 3 }}>
-              {profileData.education.map((edu) => (
-                <Paper key={edu.id} sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 2 }}>
-                  <Typography variant="h6" fontWeight="bold">{edu.degree}</Typography>
-                  <Typography>{edu.university}</Typography>
-                  <Typography variant="body2" color="text.secondary">{edu.year}</Typography>
-                </Paper>
-              ))}
-              <Button variant="outlined" startIcon={<Edit />}>Edit Education</Button>
-            </Box>
-          )}
-
-          {tabValue === 2 && (
-            <Box sx={{ mt: 3 }}>
-              {profileData.experience.map((exp) => (
-                <Paper key={exp.id} sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 2 }}>
-                  <Typography variant="h6" fontWeight="bold">{exp.position}</Typography>
-                  <Typography>{exp.company}</Typography>
-                  <Typography variant="body2" color="text.secondary">{exp.period}</Typography>
-                </Paper>
-              ))}
-              <Button variant="outlined" startIcon={<Edit />}>Edit Experience</Button>
-            </Box>
-          )}
-
-          {tabValue === 3 && (
-            <Box sx={{ mt: 3 }}>
-              <Paper sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Lock sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography fontWeight="bold">Change Password</Typography>
-                    <Typography variant="body2" color="text.secondary">Update your account password</Typography>
-                  </Box>
-                </Box>
-                <Button variant="outlined">Change</Button>
-              </Paper>
-              <Paper sx={{ p: 2, borderRadius: 2, boxShadow: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Notifications sx={{ mr: 1 }} />
-                  <Box>
-                    <Typography fontWeight="bold">Notification Settings</Typography>
-                    <Typography variant="body2" color="text.secondary">Manage your notification preferences</Typography>
-                  </Box>
-                </Box>
-                <Button variant="outlined">Settings</Button>
-              </Paper>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card sx={{ borderRadius: 3, boxShadow: 4 }}>
-        <CardContent>
-          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>📋 Recent Activities</Typography>
-          <List>
-            {[
-              { id: 1, icon: <Event />, text: 'Updated production schedule', time: '2 hours ago' },
-              { id: 2, icon: <Work />, text: 'Completed monthly report', time: '1 day ago' },
-              { id: 3, icon: <Person />, text: 'Profile information updated', time: '3 days ago' },
-              { id: 4, icon: <Security />, text: 'Changed password', time: '1 week ago' }
-            ].map((activity) => (
-              <ListItem
-                key={activity.id}
-                sx={{
-                  px: 0,
-                  py: 1,
-                  borderRadius: 2,
-                  transition: '0.2s',
-                  '&:hover': { bgcolor: theme.palette.action.hover }
+                label="Cari pegawai..."
+                variant="outlined"
+                size="small"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(0); // Reset page when searching
                 }}
-              >
-                <ListItemIcon>{activity.icon}</ListItemIcon>
-                <ListItemText primary={activity.text} secondary={activity.time} />
-              </ListItem>
-            ))}
-          </List>
-        </CardContent>
-      </Card>
+                InputProps={{
+                  startAdornment: <Search sx={{ mr: 1, color: 'action.active' }} />,
+                }}
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="flex-end">
+                <FormControl sx={{ minWidth: 120 }} size="small">
+                  <InputLabel id="divisi-select-label">Divisi</InputLabel>
+                  <Select
+                    labelId="divisi-select-label"
+                    value={filters.divisi}
+                    label="Divisi"
+                    onChange={(e) => {
+                      setFilters({ ...filters, divisi: e.target.value });
+                      setPage(0); // Reset page on filter change
+                    }}
+                  >
+                    <MenuItem value="">Semua</MenuItem>
+                    {uniqueDivisi.map((divisi) => (
+                      <MenuItem key={divisi} value={divisi}>{divisi}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <FormControl sx={{ minWidth: 120 }} size="small">
+                  <InputLabel id="status-select-label">Status</InputLabel>
+                  <Select
+                    labelId="status-select-label"
+                    value={filters.status}
+                    label="Status"
+                    onChange={(e) => {
+                      setFilters({ ...filters, status: e.target.value });
+                      setPage(0); // Reset page on filter change
+                    }}
+                  >
+                    <MenuItem value="">Semua</MenuItem>
+                    {uniqueStatus.map((status) => (
+                      <MenuItem key={status} value={status}>{status}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <Button 
+                  variant="outlined" 
+                  color="error" 
+                  startIcon={<Clear />} 
+                  onClick={resetFilters}
+                  sx={{ width: { xs: '100%', sm: 'auto' } }}
+                >
+                  Reset Filter
+                </Button>
+              </Stack>
+            </Grid>
+          </Grid>
+          
+          {/* Data Table */}
+          <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 2 }}>
+            <Table sx={{ minWidth: 650 }} aria-label="employee table">
+              <TableHead sx={{ bgcolor: 'grey.100' }}>
+                <TableRow>
+                  <TableCell onClick={() => requestSort('nip')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    NIP <SortArrow sortKey="nip" />
+                  </TableCell>
+                  <TableCell onClick={() => requestSort('nama')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    Nama Pegawai <SortArrow sortKey="nama" />
+                  </TableCell>
+                  <TableCell onClick={() => requestSort('jabatan')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    Jabatan <SortArrow sortKey="jabatan" />
+                  </TableCell>
+                  <TableCell onClick={() => requestSort('divisi')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    Divisi <SortArrow sortKey="divisi" />
+                  </TableCell>
+                  <TableCell onClick={() => requestSort('status')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    Status <SortArrow sortKey="status" />
+                  </TableCell>
+                  <TableCell onClick={() => requestSort('urgentNumber')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    No. Urgent <SortArrow sortKey="urgentNumber" />
+                  </TableCell>
+                  <TableCell onClick={() => requestSort('phoneNumber')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
+                    No. Telepon <SortArrow sortKey="phoneNumber" />
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Aksi</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {currentItems.length > 0 ? (
+                  currentItems.map((item) => (
+                    <TableRow
+                      key={item.id}
+                      onClick={() => handleRowClick(item)}
+                      sx={{ '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' } }}
+                    >
+                      <TableCell>{item.nip}</TableCell>
+                      <TableCell sx={{ fontWeight: 'medium' }}>{item.nama}</TableCell>
+                      <TableCell>{item.jabatan}</TableCell>
+                      <TableCell>{item.divisi}</TableCell>
+                      <TableCell><StatusChip status={item.status} /></TableCell>
+                      <TableCell>{item.urgentNumber}</TableCell>
+                      <TableCell>{item.phoneNumber}</TableCell> {/* Display phone number */}
+                      <TableCell>
+                        <Tooltip title="Edit Data">
+                          <IconButton color="primary" size="small">
+                            <Edit />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Lihat Detail">
+                          <IconButton color="info" size="small" sx={{ ml: 1 }}>
+                            <Visibility />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    {/* colSpan adjusted from 7 to 8 */}
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body1" color="text.secondary" mb={2}>
+                        Tidak ada data yang ditemukan
+                      </Typography>
+                      <Button variant="outlined" startIcon={<Clear />} onClick={resetFilters}>
+                        Reset Filter
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {/* Pagination */}
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 20, 50]}
+            component="div"
+            count={filteredData.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Baris per halaman:"
+            labelDisplayedRows={({ from, to, count }) => 
+              `Menampilkan ${from}-${to} dari ${count !== -1 ? count : `lebih dari ${to}`} pegawai`
+            }
+          />
+        </Box>
+      </Paper>
+      
+      {/* Employee Detail Modal */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+          <Typography variant="h6" component="span" fontWeight="bold">
+            Detail Pegawai
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          {selectedEmployee && (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
+                <Paper elevation={1} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.default' }}>
+                  <AccountCircle sx={{ fontSize: 100, color: 'text.secondary' }} />
+                  <Typography variant="h5" fontWeight="bold" mt={2} mb={1}>
+                    {selectedEmployee.nama}
+                  </Typography>
+                  <StatusChip status={selectedEmployee.status} />
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Typography variant="h6" fontWeight="bold" mb={2}>Informasi Umum</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">NIP:</Typography>
+                    <Typography variant="body1" fontWeight="medium">{selectedEmployee.nip}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Jabatan:</Typography>
+                    <Typography variant="body1" fontWeight="medium">{selectedEmployee.jabatan}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Divisi:</Typography>
+                    <Typography variant="body1" fontWeight="medium">{selectedEmployee.divisi}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Tanggal Bergabung:</Typography>
+                    <Typography variant="body1" fontWeight="medium">{selectedEmployee.joinDate}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Nomor Urgent:</Typography>
+                    <Typography variant="body1" fontWeight="medium">{selectedEmployee.urgentNumber}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}> {/* Added Phone Number to modal */}
+                    <Typography variant="body2" color="text.secondary">Nomor Telepon:</Typography>
+                    <Typography variant="body1" fontWeight="medium">{selectedEmployee.phoneNumber}</Typography>
+                  </Grid>
+                </Grid>
+                <Typography variant="h6" fontWeight="bold" mt={3} mb={1}>Informasi Tambahan</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Detail tambahan tentang pegawai bisa ditampilkan di sini, seperti kontak, riwayat pelatihan, dll.
+                </Typography>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+          <Button onClick={() => setShowModal(false)} variant="outlined">
+            Tutup
+          </Button>
+          <Button variant="contained" startIcon={<Edit />}>
+            Edit Data
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default Profile;
+export default Personalia;

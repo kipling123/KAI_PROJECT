@@ -108,9 +108,6 @@ const Login = ({ onLogin }) => {
               <input type="checkbox" />
               Remember me
             </label>
-            <a href="/forgot-password" className="forgot-password">
-              Forgot password?
-            </a>
           </div>
 
           <button
@@ -144,9 +141,6 @@ const Login = ({ onLogin }) => {
         </div>
         */}
 
-        <div className="login-link">
-          Don't have an account? <a href="/signup">Sign Up</a>
-        </div>
 
         <div className="login-footer">
           © {new Date().getFullYear()} PT KERETA API BALAI YASA & LAA. All rights reserved.

@@ -35,7 +35,8 @@ const Personalia = () => {
   });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
+  const [showEditModal, setShowEditModal] = useState(false); // New state for edit modal
+  const [editFormData, setEditFormData] = useState(null); // State to hold data for editing
 
   const uniqueDivisi = useMemo(() => [...new Set(initialData.map(item => item.divisi))], [initialData]);
   const uniqueStatus = useMemo(() => [...new Set(initialData.map(item => item.status))], [initialData]);
@@ -110,10 +111,39 @@ const Personalia = () => {
     return <Chip label={status} color={color} size="small" />;
   };
 
-  // Handle row click for modal
+  // Handle row click for detail modal
   const handleRowClick = (employee) => {
     setSelectedEmployee(employee);
     setShowModal(true);
+  };
+
+  // Handle opening the edit modal
+  const handleEditClick = (employee, event) => {
+    event.stopPropagation(); // Prevent row click from triggering detail modal
+    setSelectedEmployee(employee);
+    setEditFormData({ ...employee }); // Initialize edit form with current employee data
+    setShowEditModal(true);
+  };
+
+  // Handle changes in the edit form
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  // Handle saving the edited data
+  const handleSaveEdit = () => {
+    setData((prevData) =>
+      prevData.map((emp) =>
+        emp.id === editFormData.id ? { ...editFormData } : emp
+      )
+    );
+    setShowEditModal(false);
+    setShowModal(false); // Close detail modal if it was open
+    setSelectedEmployee(null); // Clear selected employee
   };
 
   // Reset filters
@@ -269,12 +299,24 @@ const Personalia = () => {
                       <TableCell>{item.phoneNumber}</TableCell> {/* Display phone number */}
                       <TableCell>
                         <Tooltip title="Edit Data">
-                          <IconButton color="primary" size="small">
+                          <IconButton 
+                            color="primary" 
+                            size="small" 
+                            onClick={(event) => handleEditClick(item, event)} // Pass event to stop propagation
+                          >
                             <Edit />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Lihat Detail">
-                          <IconButton color="info" size="small" sx={{ ml: 1 }}>
+                          <IconButton 
+                            color="info" 
+                            size="small" 
+                            sx={{ ml: 1 }}
+                            onClick={(event) => { // Ensure detail modal opens on its own button click
+                                event.stopPropagation(); 
+                                handleRowClick(item);
+                            }}
+                          >
                             <Visibility />
                           </IconButton>
                         </Tooltip>
@@ -374,8 +416,149 @@ const Personalia = () => {
           <Button onClick={() => setShowModal(false)} variant="outlined">
             Tutup
           </Button>
-          <Button variant="contained" startIcon={<Edit />}>
+          <Button 
+            variant="contained" 
+            startIcon={<Edit />}
+            onClick={() => {
+              setShowModal(false); // Close detail modal
+              setEditFormData({ ...selectedEmployee }); // Populate edit form
+              setShowEditModal(true); // Open edit modal
+            }}
+          >
             Edit Data
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Employee Edit Modal */}
+      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+          <Typography variant="h6" component="span" fontWeight="bold">
+            Edit Data Pegawai
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          {editFormData && (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
+                <Paper elevation={1} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.default' }}>
+                  <AccountCircle sx={{ fontSize: 100, color: 'text.secondary' }} />
+                  <Typography variant="h5" fontWeight="bold" mt={2} mb={1}>
+                    {editFormData.nama}
+                  </Typography>
+                  <StatusChip status={editFormData.status} />
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Typography variant="h6" fontWeight="bold" mb={2}>Informasi Umum</Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="NIP"
+                      name="nip"
+                      value={editFormData.nip}
+                      onChange={handleEditFormChange}
+                      margin="normal"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Nama Pegawai"
+                      name="nama"
+                      value={editFormData.nama}
+                      onChange={handleEditFormChange}
+                      margin="normal"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Jabatan"
+                      name="jabatan"
+                      value={editFormData.jabatan}
+                      onChange={handleEditFormChange}
+                      margin="normal"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth margin="normal" size="small">
+                      <InputLabel>Divisi</InputLabel>
+                      <Select
+                        name="divisi"
+                        value={editFormData.divisi}
+                        label="Divisi"
+                        onChange={handleEditFormChange}
+                      >
+                        {uniqueDivisi.map((divisi) => (
+                          <MenuItem key={divisi} value={divisi}>{divisi}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Tanggal Bergabung"
+                      name="joinDate"
+                      value={editFormData.joinDate}
+                      onChange={handleEditFormChange}
+                      margin="normal"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth margin="normal" size="small">
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        name="status"
+                        value={editFormData.status}
+                        label="Status"
+                        onChange={handleEditFormChange}
+                      >
+                        {uniqueStatus.map((status) => (
+                          <MenuItem key={status} value={status}>{status}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Nomor Urgent"
+                      name="urgentNumber"
+                      value={editFormData.urgentNumber}
+                      onChange={handleEditFormChange}
+                      margin="normal"
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Nomor Telepon"
+                      name="phoneNumber"
+                      value={editFormData.phoneNumber}
+                      onChange={handleEditFormChange}
+                      margin="normal"
+                      size="small"
+                    />
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+          <Button onClick={() => setShowEditModal(false)} variant="outlined">
+            Batal
+          </Button>
+          <Button variant="contained" startIcon={<Edit />} onClick={handleSaveEdit}>
+            Simpan Perubahan
           </Button>
         </DialogActions>
       </Dialog>

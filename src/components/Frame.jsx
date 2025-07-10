@@ -117,7 +117,8 @@ const NotificationBadge = styled(Badge)(({ theme }) => ({
 
 const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
 
-export default function Frame({ children, onLogout }) {
+// Renamed the original Frame to BaseFrame
+function BaseFrame({ children, onLogout }) {
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -202,8 +203,8 @@ export default function Frame({ children, onLogout }) {
               aria-label="open drawer"
               onClick={handleDrawerOpen}
               edge="start"
-              sx={{ 
-                mr: 1, 
+              sx={{
+                mr: 1,
                 ...(open && { display: "none" }),
                 '&:hover': {
                   transform: 'scale(1.1)',
@@ -280,8 +281,8 @@ export default function Frame({ children, onLogout }) {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Tooltip 
-              title="Toggle dark/light mode" 
+            <Tooltip
+              title="Toggle dark/light mode"
               componentsProps={{
                 tooltip: {
                   sx: {
@@ -293,8 +294,8 @@ export default function Frame({ children, onLogout }) {
                 }
               }}
             >
-              <IconButton 
-                onClick={colorMode.toggleColorMode} 
+              <IconButton
+                onClick={colorMode.toggleColorMode}
                 color="inherit"
                 sx={{
                   '&:hover': {
@@ -313,8 +314,8 @@ export default function Frame({ children, onLogout }) {
             </Tooltip>
 
             <Tooltip title="Notifications">
-              <IconButton 
-                color="inherit" 
+              <IconButton
+                color="inherit"
                 aria-label={`Show ${notifications} new notifications`}
                 sx={{
                   '&:hover': {
@@ -395,16 +396,16 @@ export default function Frame({ children, onLogout }) {
         <Box>
           <DrawerHeader>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <img 
-                src={kaiLogo} 
-                alt="KAI Logo" 
-                style={{ 
+              <img
+                src={kaiLogo}
+                alt="KAI Logo"
+                style={{
                   height: 36,
                   transition: 'transform 0.5s',
                   '&:hover': {
                     transform: 'rotate(360deg)',
                   }
-                }} 
+                }}
               />
               <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                 Production
@@ -609,8 +610,8 @@ export default function Frame({ children, onLogout }) {
           </List>
         </Box>
 
-        <Box sx={{ 
-          p: 2, 
+        <Box sx={{
+          p: 2,
           textAlign: 'center',
           borderTop: `1px solid ${theme.palette.divider}`,
           backgroundColor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
@@ -620,8 +621,8 @@ export default function Frame({ children, onLogout }) {
             cursor: 'pointer',
           }
         }} onClick={() => window.location.href = '/'}>
-          <Typography 
-            variant="overline" 
+          <Typography
+            variant="overline"
             sx={{
               fontWeight: 'bold',
               color: theme.palette.mode === 'light' ? theme.palette.primary.main : theme.palette.primary.light,
@@ -734,7 +735,7 @@ export default function Frame({ children, onLogout }) {
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
       >
         <Link to="/Profile" style={{ textDecoration: "none", color: "inherit" }}>
-          <MenuItem 
+          <MenuItem
             onClick={handleCloseProfile}
             sx={{
               '& .MuiTouchRipple-root': {
@@ -746,7 +747,7 @@ export default function Frame({ children, onLogout }) {
           </MenuItem>
         </Link>
         <Divider />
-        <MenuItem 
+        <MenuItem
           onClick={handleCloseProfile}
           sx={{
             '& .MuiTouchRipple-root': {
@@ -759,7 +760,7 @@ export default function Frame({ children, onLogout }) {
           </ListItemIcon>
           Settings
         </MenuItem>
-        <MenuItem 
+        <MenuItem
           onClick={() => { handleCloseProfile(); onLogout(); }}
           sx={{
             '& .MuiTouchRipple-root': {
@@ -914,5 +915,14 @@ export function ToggleColorMode({ children }) {
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>{children}</ThemeProvider>
     </ColorModeContext.Provider>
+  );
+}
+
+// New component to wrap BaseFrame with ToggleColorMode and export it as default
+export default function AppFrame(props) {
+  return (
+    <ToggleColorMode>
+      <BaseFrame {...props} />
+    </ToggleColorMode>
   );
 }

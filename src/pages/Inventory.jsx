@@ -155,8 +155,8 @@ export default function Inventory() {
   const limitedItems = inventoryData.filter(item => item.status === 'Limit').length;
   const unavailableItems = inventoryData.filter(item => item.status === 'Tidak Tersedia').length;
   const producedItems = inventoryData.filter(item => item.status === 'Diproduksi').length;
-  const overhaulItems = inventoryData.filter(item => item.status === 'Overhaul').length; // Corrected: re-added definition
-  const engineeredItems = inventoryData.filter(item => item.status === 'Rekayasa').length; // Corrected: re-added definition
+  const overhaulItems = inventoryData.filter(item => item.status === 'Overhaul').length;
+  const engineeredItems = inventoryData.filter(item => item.status === 'Rekayasa').length; 
   const repairedItems = inventoryData.filter(item => item.status === 'Perbaikan').length;
 
   const totalQuantity = inventoryData.reduce((sum, item) => sum + item.quantity, 0);

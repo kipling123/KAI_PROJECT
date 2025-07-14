@@ -173,10 +173,10 @@ export default function QualityControl() {
   // Adds a new QC entry to the appropriate department
   const handleAddNewQc = () => {
     const department = newQcEntry.department.toLowerCase();
-    const newId = `${department === 'production' ? 'PRD' : 
-                  department === 'overhaul' ? 'OVH' : 
+    const newId = `${department === 'production' ? 'PRD' :
+                  department === 'overhaul' ? 'OVH' :
                   department === 'engineering' ? 'ENG' : 'STK'}-${String(data[department].length + 1).padStart(3, '0')}`;
-    
+
     const entryToAdd = {
       id: newId,
       ...newQcEntry,
@@ -200,7 +200,7 @@ export default function QualityControl() {
     // Here you would typically send the item back to its original department
     // For demonstration, we'll just update its status
     const department = selectedItem.department.toLowerCase();
-    const updatedData = data[department].map(item => 
+    const updatedData = data[department].map(item =>
       item.id === selectedItem.id ? { ...item, status: "Dalam Perbaikan" } : item
     );
 
@@ -265,8 +265,8 @@ export default function QualityControl() {
     datasets: [
       {
         data: [
-          statusCounts["Lulus"], 
-          statusCounts["Dalam Proses"], 
+          statusCounts["Lulus"],
+          statusCounts["Dalam Proses"],
           statusCounts["Tidak Lulus"],
           statusCounts["Dalam Perbaikan"]
         ],
@@ -361,7 +361,68 @@ export default function QualityControl() {
         </CardContent>
       </Card>
 
-      {/* QC Table Section */}
+      {/* Statistics and Overall Pass Rate Summary Section (Moved above the table) */}
+      <Grid container spacing={3} mb={4}> {/* Added mb={4} for spacing */}
+        {/* Statistics Card */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" mb={2}>Statistik QC</Typography>
+              <Grid container spacing={2}>
+                {[
+                  { label: "Total QC", value: currentData.length, color: "#9C27B0", bg: 'rgba(156, 39, 176, 0.1)' },
+                  { label: "Lulus", value: statusCounts["Lulus"], color: "#4CAF50", bg: 'rgba(76, 175, 80, 0.1)' },
+                  { label: "Tidak Lulus", value: statusCounts["Tidak Lulus"], color: "#F44336", bg: 'rgba(244, 67, 54, 0.1)' },
+                  { label: "Dalam Perbaikan", value: statusCounts["Dalam Perbaikan"], color: "#2196F3", bg: 'rgba(33, 150, 243, 0.1)' }
+                ].map((stat, i) => (
+                  <Grid item xs={6} sm={3} key={i}>
+                    <Card sx={{ textAlign: 'center', backgroundColor: stat.bg, p: 2 }}>
+                      <Typography variant="h4" fontWeight="bold" color={stat.color}>{stat.value}</Typography>
+                      <Typography variant="body2">{stat.label}</Typography>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+              {/* Doughnut Chart */}
+              <Box sx={{ mt: 3, height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <Doughnut data={doughnutData} options={doughnutOptions} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Overall Pass Rate Summary Card */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" mb={2}>Status Rate Keseluruhan</Typography>
+              <LinearProgress
+                variant="determinate"
+                value={overallPassRate}
+                sx={{
+                  height: 12,
+                  borderRadius: 6,
+                  mb: 1,
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: '#9C27B0',
+                    borderRadius: 6
+                  }
+                }}
+              />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2">Tested: {totalTested}</Typography>
+                <Typography variant="body2">Passed: {totalPassed}</Typography>
+                <Typography variant="body2" fontWeight="bold">{overallPassRate}%</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" mt={2}>
+                Status rate dihitung dari total produk yang diuji dan berhasil melewati QC.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* QC Table Section (Remains after the statistics) */}
       <Card sx={{ borderRadius: 2, mb: 4 }}>
         <CardContent>
           <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
@@ -439,8 +500,8 @@ export default function QualityControl() {
                       </TableCell>
                       <TableCell>{row.date}</TableCell>
                       <TableCell>
-                        <Button 
-                          size="small" 
+                        <Button
+                          size="small"
                           sx={{ color: '#9C27B0', textTransform: 'none' }}
                           onClick={() => handleOpenRepairModal(row)}
                         >
@@ -460,67 +521,6 @@ export default function QualityControl() {
           )}
         </CardContent>
       </Card>
-
-      {/* Statistics and Overall Pass Rate Summary Section */}
-      <Grid container spacing={3}>
-        {/* Statistics Card */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" mb={2}>Statistik QC</Typography>
-              <Grid container spacing={2}>
-                {[
-                  { label: "Total QC", value: currentData.length, color: "#9C27B0", bg: 'rgba(156, 39, 176, 0.1)' },
-                  { label: "Lulus", value: statusCounts["Lulus"], color: "#4CAF50", bg: 'rgba(76, 175, 80, 0.1)' },
-                  { label: "Tidak Lulus", value: statusCounts["Tidak Lulus"], color: "#F44336", bg: 'rgba(244, 67, 54, 0.1)' },
-                  { label: "Dalam Perbaikan", value: statusCounts["Dalam Perbaikan"], color: "#2196F3", bg: 'rgba(33, 150, 243, 0.1)' }
-                ].map((stat, i) => (
-                  <Grid item xs={6} sm={3} key={i}>
-                    <Card sx={{ textAlign: 'center', backgroundColor: stat.bg, p: 2 }}>
-                      <Typography variant="h4" fontWeight="bold" color={stat.color}>{stat.value}</Typography>
-                      <Typography variant="body2">{stat.label}</Typography>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-              {/* Doughnut Chart */}
-              <Box sx={{ mt: 3, height: 200, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <Doughnut data={doughnutData} options={doughnutOptions} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Overall Pass Rate Summary Card */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" mb={2}>Status Rate Keseluruhan</Typography>
-              <LinearProgress
-                variant="determinate"
-                value={overallPassRate}
-                sx={{
-                  height: 12,
-                  borderRadius: 6,
-                  mb: 1,
-                  '& .MuiLinearProgress-bar': {
-                    backgroundColor: '#9C27B0',
-                    borderRadius: 6
-                  }
-                }}
-              />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2">Tested: {totalTested}</Typography>
-                <Typography variant="body2">Passed: {totalPassed}</Typography>
-                <Typography variant="body2" fontWeight="bold">{overallPassRate}%</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" mt={2}>
-                Status rate dihitung dari total produk yang diuji dan berhasil melewati QC.
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* Add QC Modal */}
       <Dialog open={openAddModal} onClose={handleCloseAddModal} fullWidth maxWidth="sm">
@@ -677,4 +677,4 @@ export default function QualityControl() {
       </Dialog>
     </Box>
   );
-}
+}2

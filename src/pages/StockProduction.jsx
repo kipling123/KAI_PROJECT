@@ -91,7 +91,7 @@ const StockProduction = () => {
     }
   ];
 
-  // Filter data for the table as requested
+  // Filter data 
   const tabulasiData = productionData.filter(item => 
     item.title === "Stock Production" || 
     item.title === "Overhaul Point Machine" || 
@@ -107,12 +107,12 @@ const StockProduction = () => {
 
   const handleRefresh = () => {
     setLastRefreshed(new Date());
-    // In a real app, you would trigger data refresh here
+    // Fungsi buat nge trigger 
   };
 
   const getProgressColor = (progress) => {
-    if (progress >= 90) return '#4CAF50'; // Green
-    if (progress >= 70) return '#FFA000'; // Orange
+    if (progress >= 90) return '#4CAF50'; 
+    if (progress >= 70) return '#FFA000'; 
     if (progress >= 50) return '#FFC107'; // Amber
     return '#F44336'; // Red
   };

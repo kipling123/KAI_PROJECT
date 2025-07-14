@@ -14,18 +14,18 @@ import {
 const Personalia = () => {
   // inisialisaisi data data pegawai
   const initialData = [
-    { id: 1, nip: '198003012005011001', nama: 'Budi Santoso', jabatan: 'Manager', divisi: 'Manajemen', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2005-01-10', urgentNumber: '081234567890', phoneNumber: '087711223344' },
-    { id: 2, nip: '198104022006022002', nama: 'Ani Wijaya', jabatan: 'Asisten Manager', divisi: 'Pelayanan', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2006-02-20', urgentNumber: '081345678901', phoneNumber: '087722334455' },
-    { id: 3, nip: '198205033007033003', nama: 'Citra Dewi', jabatan: 'Staff Produksi', divisi: 'Operasional', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2007-03-30', urgentNumber: '081456789012', phoneNumber: '087733445566' },
-    { id: 4, nip: '198306044008044004', nama: 'Dodi Pratama', jabatan: 'IT', divisi: 'Telekomunikasi', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2008-04-15', urgentNumber: '081567890123', phoneNumber: '087744556677' },
-    { id: 5, nip: '198407055009055005', nama: 'Eka Putri', jabatan: 'Ticketing Officer', divisi: 'Pelayanan', lokasi: 'Balai Yasa', status: 'Cuti', joinDate: '2009-05-25', urgentNumber: '081678901234', phoneNumber: '087755667788' },
-    { id: 6, nip: '198508066010066006', nama: 'Fajar Setiawan', jabatan: 'Teknisi', divisi: 'Pemeliharaan', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2010-06-05', urgentNumber: '081789012345', phoneNumber: '087766778899' },
-    { id: 7, nip: '198609077011077007', nama: 'Gita Maharani', jabatan: 'HRD Staff', divisi: 'SDM', lokasi: 'Kantor Pusat Jakarta', status: 'Aktif', joinDate: '2011-07-12', urgentNumber: '081890123456', phoneNumber: '087777889900' },
+    { id: 1, nip: '198003012005011001', jabatan: 'Manager', divisi: 'Manajemen', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2005-01-10', urgentNumber: '081234567890', phoneNumber: '087711223344' },
+    { id: 2, nip: '198104022006022002', jabatan: 'Asisten Manager', divisi: 'Pelayanan', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2006-02-20', urgentNumber: '081345678901', phoneNumber: '087722334455' },
+    { id: 3, nip: '198205033007033003', jabatan: 'Staff Produksi', divisi: 'Operasional', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2007-03-30', urgentNumber: '081456789012', phoneNumber: '087733445566' },
+    { id: 4, nip: '198306044008044004', jabatan: 'IT', divisi: 'Telekomunikasi', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2008-04-15', urgentNumber: '081567890123', phoneNumber: '087744556677' },
+    { id: 5, nip: '198407055009055005', jabatan: 'Ticketing Officer', divisi: 'Pelayanan', lokasi: 'Balai Yasa', status: 'Cuti', joinDate: '2009-05-25', urgentNumber: '081678901234', phoneNumber: '087755667788' },
+    { id: 6, nip: '198508066010066006', jabatan: 'Teknisi', divisi: 'Pemeliharaan', lokasi: 'Balai Yasa', status: 'Aktif', joinDate: '2010-06-05', urgentNumber: '081789012345', phoneNumber: '087766778899' },
+    { id: 7, nip: '198609077011077007', jabatan: 'HRD Staff', divisi: 'SDM', lokasi: 'Kantor Pusat Jakarta', status: 'Aktif', joinDate: '2011-07-12', urgentNumber: '081890123456', phoneNumber: '087777889900' },
   ];
 
-  // State management
+  // status management
   const [data, setData] = useState(initialData);
-  const [sortConfig, setSortConfig] = useState({ key: 'nama', direction: 'asc' }); 
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // Changed initial sort key to null
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0); 
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -35,8 +35,8 @@ const Personalia = () => {
   });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false); // New state for edit modal
-  const [editFormData, setEditFormData] = useState(null); // State to hold data for editing
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState(null);
 
   const uniqueDivisi = useMemo(() => [...new Set(initialData.map(item => item.divisi))], [initialData]);
   const uniqueStatus = useMemo(() => [...new Set(initialData.map(item => item.status))], [initialData]);
@@ -261,9 +261,6 @@ const Personalia = () => {
                   <TableCell onClick={() => requestSort('nip')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
                     NIP <SortArrow sortKey="nip" />
                   </TableCell>
-                  <TableCell onClick={() => requestSort('nama')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
-                    Nama Pegawai <SortArrow sortKey="nama" />
-                  </TableCell>
                   <TableCell onClick={() => requestSort('jabatan')} sx={{ cursor: 'pointer', fontWeight: 'bold' }}>
                     Jabatan <SortArrow sortKey="jabatan" />
                   </TableCell>
@@ -291,18 +288,17 @@ const Personalia = () => {
                       sx={{ '&:hover': { bgcolor: 'action.hover', cursor: 'pointer' } }}
                     >
                       <TableCell>{item.nip}</TableCell>
-                      <TableCell sx={{ fontWeight: 'medium' }}>{item.nama}</TableCell>
                       <TableCell>{item.jabatan}</TableCell>
                       <TableCell>{item.divisi}</TableCell>
                       <TableCell><StatusChip status={item.status} /></TableCell>
                       <TableCell>{item.urgentNumber}</TableCell>
-                      <TableCell>{item.phoneNumber}</TableCell> {/* Display phone number */}
+                      <TableCell>{item.phoneNumber}</TableCell>
                       <TableCell>
                         <Tooltip title="Edit Data">
                           <IconButton 
                             color="primary" 
                             size="small" 
-                            onClick={(event) => handleEditClick(item, event)} // Pass event to stop propagation
+                            onClick={(event) => handleEditClick(item, event)}
                           >
                             <Edit />
                           </IconButton>
@@ -312,7 +308,7 @@ const Personalia = () => {
                             color="info" 
                             size="small" 
                             sx={{ ml: 1 }}
-                            onClick={(event) => { // Ensure detail modal opens on its own button click
+                            onClick={(event) => {
                                 event.stopPropagation(); 
                                 handleRowClick(item);
                             }}
@@ -325,8 +321,7 @@ const Personalia = () => {
                   ))
                 ) : (
                   <TableRow>
-                    {/* colSpan adjusted from 7 to 8 */}
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}> {/* Adjusted colSpan */}
                       <Typography variant="body1" color="text.secondary" mb={2}>
                         Tidak ada data yang ditemukan
                       </Typography>
@@ -371,7 +366,7 @@ const Personalia = () => {
                 <Paper elevation={1} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.default' }}>
                   <AccountCircle sx={{ fontSize: 100, color: 'text.secondary' }} />
                   <Typography variant="h5" fontWeight="bold" mt={2} mb={1}>
-                    {selectedEmployee.nama}
+                    {selectedEmployee.nip} {/* Display NIP instead of nama */}
                   </Typography>
                   <StatusChip status={selectedEmployee.status} />
                 </Paper>
@@ -399,7 +394,7 @@ const Personalia = () => {
                     <Typography variant="body2" color="text.secondary">Nomor Urgent:</Typography>
                     <Typography variant="body1" fontWeight="medium">{selectedEmployee.urgentNumber}</Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}> {/* Added Phone Number to modal */}
+                  <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Nomor Telepon:</Typography>
                     <Typography variant="body1" fontWeight="medium">{selectedEmployee.phoneNumber}</Typography>
                   </Grid>
@@ -420,9 +415,9 @@ const Personalia = () => {
             variant="contained" 
             startIcon={<Edit />}
             onClick={() => {
-              setShowModal(false); // Close detail modal
-              setEditFormData({ ...selectedEmployee }); // Populate edit form
-              setShowEditModal(true); // Open edit modal
+              setShowModal(false);
+              setEditFormData({ ...selectedEmployee });
+              setShowEditModal(true);
             }}
           >
             Edit Data
@@ -444,7 +439,7 @@ const Personalia = () => {
                 <Paper elevation={1} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.default' }}>
                   <AccountCircle sx={{ fontSize: 100, color: 'text.secondary' }} />
                   <Typography variant="h5" fontWeight="bold" mt={2} mb={1}>
-                    {editFormData.nama}
+                    {editFormData.nip} {/* Display NIP instead of nama */}
                   </Typography>
                   <StatusChip status={editFormData.status} />
                 </Paper>
@@ -463,17 +458,7 @@ const Personalia = () => {
                       size="small"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Nama Pegawai"
-                      name="nama"
-                      value={editFormData.nama}
-                      onChange={handleEditFormChange}
-                      margin="normal"
-                      size="small"
-                    />
-                  </Grid>
+                  {/* Removed TextField for "Nama Pegawai" */}
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth

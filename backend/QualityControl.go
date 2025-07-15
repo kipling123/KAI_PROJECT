@@ -1,3 +1,63 @@
+package backend
+
+import (
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	_ "github.com/go-sql-driver/mysql" // Import the MySQL driver
+)
+
+// QualityControl represents a row in the quality control table.
+// Replace with actual fields from your quality control table.
+type QualityControl struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	// Add other fields from your table here
+}
+
+// GetQualityControlHandler handles requests to retrieve all quality control records.
+func GetQualityControlHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := InitDB() // Assumes InitDB is in database.go
+	if err != nil {
+		log.Printf("Error connecting to database: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	// Replace "your_quality_control_table" with the actual table name
+	// Replace the SELECT statement and scanning logic with your table's columns
+	rows, err := db.Query("SELECT id, name FROM your_quality_control_table")
+	if err != nil {
+		log.Printf("Error querying database: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var qualityControlList []QualityControl
+	for rows.Next() {
+		var qc QualityControl
+		// Scan the row into your struct fields
+		err := rows.Scan(&qc.ID, &qc.Name) // Adjust based on your columns
+		if err != nil {
+			log.Printf("Error scanning row: %v", err)
+			continue // Or handle the error differently
+		}
+		qualityControlList = append(qualityControlList, qc)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(qualityControlList)
+}
 package main
 
 import (

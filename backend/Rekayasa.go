@@ -1,3 +1,54 @@
+package backend
+
+import (
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	_ "github.com/go-sql-driver/mysql"
+)
+
+type Rekayasa struct {
+	RekayasaID int    `json:"rekayasa_id"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+	Team       string `json:"team"` // Assuming team is stored as a string (e.g., comma-separated)
+	Deadline   string `json:"deadline"`
+	Progress   string `json:"progress"` // Assuming progress is stored as varchar
+}
+
+// GetRekayasaHandler handles requests to get all rekayasa records.
+func GetRekayasaHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := InitDB()
+	if err != nil {
+		log.Printf("Error connecting to database: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT rekayasa_id, name, status, team, deadline, progress FROM rekayasa")
+	if err != nil {
+		log.Printf("Error querying rekayasa table: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var rekayasaList []Rekayasa
+	for rows.Next() {
+		var rk Rekayasa
+		if err := rows.Scan(&rk.RekayasaID, &rk.Name, &rk.Status, &rk.Team, &rk.Deadline, &rk.Progress); err != nil {
+			log.Printf("Error scanning rekayasa row: %v", err)
+			continue // Skip this row and try the next
+		}
+		rekayasaList = append(rekayasaList, rk)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(rekayasaList)
+}
 package main
 
 import (

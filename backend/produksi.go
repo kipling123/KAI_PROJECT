@@ -1,3 +1,75 @@
+package backend
+
+import (
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	_ "github.com/go-sql-driver/mysql" // MySQL driver
+	"main/backend/database" // Import the database package
+)
+
+// Produksi represents a record in the 'produksi' table
+type Produksi struct {
+	ProduksiID   int    `json:"produksi_id"`
+	Name         string `json:"name"`
+	Target       int    `json:"target"`
+	Completed    int    `json:"completed"`
+	Status       string `json:"status"`
+	StartDate    string `json:"start_date"`
+	EndDate      string `json:"end_date"`
+	MaterialsID  int    `json:"materials_id"`
+	ProgressID   int    `json:"progress_id"`
+	InventoryID  int    `json:"inventory_id"`
+}
+
+// GetProduksiHandler handles requests to get all records from the 'produksi' table
+func GetProduksiHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := database.InitDB()
+	if err != nil {
+		log.Printf("Database connection error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT produksi_id, name, target, completed, status, start_date, end_date, materials_id, progress_id, inventory_id FROM produksi")
+	if err != nil {
+		log.Printf("Error querying produksi table: %v", err)
+		http.Error(w, "Error retrieving produksi data", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var produksiList []Produksi
+	for rows.Next() {
+		var p Produksi
+		err := rows.Scan(&p.ProduksiID, &p.Name, &p.Target, &p.Completed, &p.Status, &p.StartDate, &p.EndDate, &p.MaterialsID, &p.ProgressID, &p.InventoryID)
+		if err != nil {
+			log.Printf("Error scanning produksi row: %v", err)
+			// Continue processing other rows, but log the error
+			continue
+		}
+		produksiList = append(produksiList, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		http.Error(w, "Error processing produksi data", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(produksiList)
+}
+
+// Add other CRUD handlers (CreateProduksiHandler, UpdateProduksiHandler, DeleteProduksiHandler) here
+// ...
+
+// Note: You will need to register this handler in your main router (e.g., in main.go)
+// to make it accessible via HTTP requests.
+// Example: mux.HandleFunc("/produksi", GetProduksiHandler)
 package main
 
 import (

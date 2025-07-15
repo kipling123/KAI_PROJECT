@@ -1,3 +1,53 @@
+package backend
+
+import (
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	// Import the MySQL driver
+	_ "github.com/go-sql-driver/mysql"
+)
+
+// Kalibrasi represents a record in the kalibrasi table.
+// NOTE: The fields here are placeholders. Please update them
+// to match the actual columns in your 'kalibrasi' table in the database.
+type Kalibrasi struct {
+	ID              int    `json:"id"`               // Placeholder for the primary key
+	Equipment       string `json:"equipment"`        // Placeholder for an equipment name or identifier
+	LastCalibration string `json:"last_calibration"` // Placeholder for the last calibration date
+	// Add other fields here that match your 'kalibrasi' table columns
+}
+
+// GetKalibrasiHandler handles requests to get all calibration records.
+// NOTE: The SQL query and the scanning logic are based on placeholder fields.
+// Update the SELECT statement and rows.Scan to match your actual table and struct.
+func GetKalibrasiHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := database.InitDB() // Assuming database.InitDB is in ../database.go
+	if err != nil {
+		log.Printf("Error connecting to database: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	// NOTE: Update this query to select the correct columns from your kalibrasi table
+	rows, err := db.Query("SELECT ID, Equipment, LastCalibration FROM your_kalibrasi_table")
+	if err != nil {
+		log.Printf("Error querying kalibrasi table: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// NOTE: Update the scanning logic to match your actual struct fields
+	var calibrations []Kalibrasi
+	// Loop through rows and scan into Kalibrasi struct
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(calibrations) // Encode the populated struct slice
+}
 package main
 
 import (

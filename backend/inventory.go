@@ -3,147 +3,271 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
+	"strconv" // Added import for strconv
 	"time"
-
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux" // Assuming you'll use gorilla/mux for routing and path variables
+
+	// Assuming database.go is in the same 'backend' package or imported correctly
+	"your_module_path/backend/database" // Replace with your actual module path
 )
 
-type InventoryItem struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Quantity  int       `json:"quantity"`
+type Inventory struct {
+	InventoryID int64 `json:"inventory_id"` // Changed to int64 for LastInsertId compatibility
+	Name        string `json:"name"`
 	Location  string    `json:"location"`
 	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	Qty         int       `json:"qty"` // Added Qty field based on DB schema
 }
 
-func connectDB() *sql.DB {
-	dbHost := getEnv("DB_HOST", "localhost")
-	dbPort := getEnv("DB_PORT", "3306")
-	dbUser := getEnv("DB_USER", "root")
-	dbPass := getEnv("DB_PASS", "")
-	dbName := getEnv("DB_NAME", "kai_db")
-
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
-
-	db, err := sql.Open("mysql", dsn)
+// GetInventoryHandler handles GET requests for inventory data.
+func GetInventoryHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := database.InitDB() // Assuming InitDB is in database.go and returns *sql.DB and error
 	if err != nil {
-		log.Fatal("DB connection failed:", err)
+		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		return
 	}
-	if err = db.Ping(); err != nil {
-		log.Fatal("DB not responding:", err)
-	}
-	return db
-}
-
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
-}
-
-// GET /api/inventory
-func getInventory(w http.ResponseWriter, r *http.Request) {
-	db := connectDB()
 	defer db.Close()
 
-	rows, err := db.Query(`SELECT id, name, quantity, location, status, created_at FROM inventory`)
-	if err != nil {
+	rows, err := db.Query("SELECT inventory_id, name, qty, location, status FROM inventory") // Added qty to query
+	if err != nil { // Removed extra parenthesis
 		http.Error(w, "Failed to fetch data", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var data []InventoryItem
+	var inventoryItems []Inventory // Corrected variable name
 	for rows.Next() {
-		var item InventoryItem
-		if err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Location, &item.Status, &item.CreatedAt); err != nil {
-			http.Error(w, "Failed to read row", http.StatusInternalServerError)
+		var item Inventory // Declared item inside the loop
+		if err := rows.Scan(&item.InventoryID, &item.Name, &item.Qty, &item.Location, &item.Status); err != nil {
+			http.Error(w, "Failed to scan row", http.StatusInternalServerError) // Fixed typo
 			return
 		}
-		data = append(data, item)
+		inventoryItems = append(inventoryItems, item) // Corrected append
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(inventoryItems); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Printf("Error encoding response: %v", err) // Added logging for encoding error
+	}
 }
 
-// POST /api/inventory
-func addInventory(w http.ResponseWriter, r *http.Request) {
-	var item InventoryItem
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+// GetInventoryByIDHandler handles GET requests for a single inventory item by ID.
+func GetInventoryByIDHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr, ok := vars["id"]
+	if !ok {
 		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		log.Printf("Error decoding request body: %v", err)
 		return
 	}
 
-	db := connectDB()
+	db, err := InitDB() // Get DB connection
+	if err != nil {
+		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		log.Printf("Error connecting to database: %v", err)
+		return
+	}
+	defer db.Close()
+}
+
+// CreateInventoryHandler handles POST requests to add new inventory items.
+func CreateInventoryHandler(w http.ResponseWriter, r *http.Request) {
+	var newInventory Inventory // Use the Inventory struct, changed variable name to newInventory
+	if err := json.NewDecoder(r.Body).Decode(&newInventory); err != nil { // Decode into newInventory
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		log.Printf("Error decoding request body: %v", err)
+		return
+	}
+
+	db, err := database.InitDB() // Get DB connection
+	if err != nil {
+		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		log.Printf("Error connecting to database: %v", err)
+		return
+	}
 	defer db.Close()
 
-	query := `INSERT INTO inventory (name, quantity, location, status) VALUES (?, ?, ?, ?)`
-	_, err := db.Exec(query, item.Name, item.Quantity, item.Location, item.Status)
+	// Prepare the SQL INSERT statement
+	insertStatement := "INSERT INTO inventory (name, qty, location, status) VALUES (?, ?, ?, ?)" // Changed to insertStatement
+	result, err := db.Exec(insertStatement, newInventory.Name, newInventory.Qty, newInventory.Location, newInventory.Status) // Execute the statement directly
 	if err != nil {
-		http.Error(w, "Failed to save to DB", http.StatusInternalServerError)
+		http.Error(w, "Failed to create inventory item", http.StatusInternalServerError)
+		log.Printf("Error executing insert statement: %v", err)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "Inventory item added successfully")
+	// Get the ID of the newly inserted item (optional but good practice)
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Warning: Could not get last insert ID: %v", err)
+	}
+	newInventory.InventoryID = id // Set the ID in the response struct
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated) // HTTP 201 Created
+	if err := json.NewEncoder(w).Encode(newInventory); err != nil { // Encode newInventory
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Printf("Error encoding response: %v", err)
+	}
 }
 
-// PUT /api/inventory?id=1
-func updateInventory(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
+// UpdateInventoryHandler handles PUT requests to update existing inventory items.
+func UpdateInventoryHandler(w http.ResponseWriter, r *http.Request) {
+	// Use mux.Vars for extracting ID from URL path
+	// Extract inventory ID from URL path using gorilla/mux
+	vars := mux.Vars(r)
+	idStr, ok := vars["id"]
+	if !ok {
+		http.Error(w, "Inventory ID not provided in URL", http.StatusBadRequest)
+		return // Corrected return position
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid Inventory ID", http.StatusBadRequest)
+		log.Printf("Error converting ID to int: %v", err)
+		return
+	}
+
+	var updatedItem Inventory // Use the Inventory struct
+	if err := json.NewDecoder(r.Body).Decode(&updatedItem); err != nil { // Decode into updatedItem
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		log.Printf("Error decoding request body: %v", err)
+		return
+	}
+
+	// Ensure the ID from the URL matches the ID in the request body if present
+	if updatedItem.InventoryID != 0 && updatedItem.InventoryID != int64(id) {
+		http.Error(w, "Mismatch between URL ID and body ID", http.StatusBadRequest) // Corrected error message
+		return
+	}
+	updatedItem.InventoryID = int64(id) // Use the ID from the URL
+
+	db, err := database.InitDB() // Get DB connection
+	if err != nil {
+		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		log.Printf("Error connecting to database: %v", err)
+		return
+	}
+	defer db.Close()
+
+	// Prepare the SQL UPDATE statement
+	result, err := db.Exec(insertStatement, newInventory.Name, newInventory.Qty, newInventory.Location, newInventory.Status) // Execute the statement directly
+		if err != nil {
+		http.Error(w, "Failed to create inventory item", http.StatusInternalServerError)
+		log.Printf("Error executing insert statement: %v", err)
+		return
+	}
+	
+	// Get the ID of the newly inserted item (optional but good practice)
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Warning: Could not get last insert ID: %v", err)
+	}
+	newInventory.InventoryID = id // Set the ID in the response struct
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated) // HTTP 201 Created
+	if err := json.NewEncoder(w).Encode(newInventory); err != nil { // Encode newInventory
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+// UpdateInventoryHandler handles PUT requests to update existing inventory items.
+func UpdateInventoryHandler(w http.ResponseWriter, r *http.Request) {
+	// Use mux.Vars for extracting ID from URL path
+	// Extract inventory ID from URL path using gorilla/mux
+	vars := mux.Vars(r)
+	idStr, ok := vars["id"]
+	if !ok {
+		http.Error(w, "Inventory ID not provided in URL", http.StatusBadRequest)
+		return // Corrected return position
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid Inventory ID", http.StatusBadRequest)
+		log.Printf("Error converting ID to int: %v", err)
+		return
+	}
+
+	var updatedItem Inventory // Use the Inventory struct
+	if err := json.NewDecoder(r.Body).Decode(&updatedItem); err != nil { // Decode into updatedItem
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		log.Printf("Error decoding request body: %v", err)
+		return
+	}
+
+	// Ensure the ID from the URL matches the ID in the request body if present and not zero
+	if updatedItem.InventoryID != 0 && updatedItem.InventoryID != int64(id) {
+		http.Error(w, "Mismatch between URL ID and body ID", http.StatusBadRequest) // Corrected error message
+		return
+	}
+	updatedItem.InventoryID = id // Use the ID from the URL
+
+	db, err := InitDB() // Get DB connection
+		if err != nil {
+		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		log.Printf("Error connecting to database: %v", err)
+		return
+	}
+	defer db.Close()
+	
+	// Prepare the SQL UPDATE statement
+	updateStatement := `UPDATE inventory SET name=?, qty=?, location=?, status=? WHERE inventory_id=?` // Use qty, update statement
+	_, err = db.Exec(updateStatement, updatedItem.Name, updatedItem.Qty, updatedItem.Location, updatedItem.Status, updatedItem.InventoryID) // Execute with updatedItem data and ID
+		if err != nil {
+			http.Error(w, "Failed to update inventory item", http.StatusInternalServerError)
+			log.Printf("Error executing update statement: %v", err)
+			return
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			log.Printf("Warning: Could not get rows affected: %v", err)
+		}
+
+		if rowsAffected == 0 {
+			http.Error(w, "Inventory item not found", http.StatusNotFound)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK) // HTTP 200 OK
+		response := map[string]string{"message": "Inventory updated successfully"}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			log.Printf("Error encoding response: %v", err)
+		}
+}
+
+// DeleteInventoryHandler handles DELETE requests to delete inventory items.
+func DeleteInventoryHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr, ok := vars["id"]
+	if !ok {
+		http.Error(w, "Inventory ID not provided in URL", http.StatusBadRequest)
+		return
+	}
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		log.Printf("Error converting ID to int for delete: %v", err)
 		return
 	}
 
-	var item InventoryItem
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return
-	}
-
-	db := connectDB()
-	defer db.Close()
-
-	query := `UPDATE inventory SET name=?, quantity=?, location=?, status=? WHERE id=?`
-	_, err = db.Exec(query, item.Name, item.Quantity, item.Location, item.Status, id)
+	db, err := InitDB() // Get DB connection
 	if err != nil {
-		http.Error(w, "Failed to update DB", http.StatusInternalServerError)
+		http.Error(w, "Failed to connect to database", http.StatusInternalServerError)
+		log.Printf("Error connecting to database for delete: %v", err)
 		return
 	}
-
-	fmt.Fprint(w, "Inventory item updated successfully")
 }
 
-// DELETE /api/inventory?id=1
-func deleteInventory(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
-
-	db := connectDB()
-	defer db.Close()
-
-	_, err = db.Exec("DELETE FROM inventory WHERE id=?", id)
-	if err != nil {
-		http.Error(w, "Failed to delete from DB", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprint(w, "Inventory item deleted successfully")
-}
+import "fmt"
 
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -155,25 +279,4 @@ func enableCORS(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
-}
-
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/inventory", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET":
-			getInventory(w, r)
-		case "POST":
-			addInventory(w, r)
-		case "PUT":
-			updateInventory(w, r)
-		case "DELETE":
-			deleteInventory(w, r)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	})
-
-	fmt.Println("Inventory API running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", enableCORS(mux)))
 }

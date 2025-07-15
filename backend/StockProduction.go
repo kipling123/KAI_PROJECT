@@ -1,5 +1,68 @@
 package main
 
+package backend
+
+import (
+	"database/sql"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	// Import the MySQL driver
+	_ "github.com/go-sql-driver/mysql"
+)
+
+// StockProduction represents a record in the stock production table.
+// Please replace with the actual fields from your database table.
+type StockProduction struct {
+	ID       int    `json:"id"`
+	ItemName string `json:"item_name"`
+	Quantity int    `json:"quantity"`
+	// Add other fields as per your database schema
+}
+
+// GetStockProductionHandler retrieves all stock production records from the database.
+func GetStockProductionHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := database.InitDB() // Assuming database.InitDB() returns *sql.DB and an error
+	if err != nil {
+		log.Printf("Error connecting to database: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	// Placeholder query - replace with the actual table name and columns
+	rows, err := db.Query("SELECT ID, ItemName, Quantity FROM your_stock_production_table")
+	if err != nil {
+		log.Printf("Error querying database: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var stockProduction []StockProduction
+	for rows.Next() {
+		var sp StockProduction
+		// Replace with actual column names and types
+		if err := rows.Scan(&sp.ID, &sp.ItemName, &sp.Quantity); err != nil {
+			log.Printf("Error scanning row: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		stockProduction = append(stockProduction, sp)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("Error after iterating rows: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stockProduction)
+}
+
+
 import (
 	"encoding/json"
 	"log"

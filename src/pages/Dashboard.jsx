@@ -5,7 +5,6 @@ import {
   Card,
   CardContent,
   Grid,
-  // LinearProgress, // We will re-add LinearProgress for the dialog, but keep it commented for the card itself
   Avatar,
   useTheme,
   Chip,
